@@ -41,11 +41,11 @@ fn setup(mut commands: Commands) {
 
 fn update(
     cursor_position: ResMut<CursorPosition>,
-    q_player_transform: Query<&Transform, (With<PlayerMarker>, Without<CameraMarker>)>,
-    mut q_camera_transform: Query<&mut Transform, With<CameraMarker>>,
+    query_player_transform: Query<&Transform, (With<PlayerMarker>, Without<CameraMarker>)>,
+    mut query_camera_transform: Query<&mut Transform, With<CameraMarker>>,
 ) {
-    let player_transform = q_player_transform.single();
-    let mut camera_transform = q_camera_transform.single_mut();
+    let player_transform = query_player_transform.single();
+    let mut camera_transform = query_camera_transform.single_mut();
     let target = player_transform
         .translation
         .xz()
