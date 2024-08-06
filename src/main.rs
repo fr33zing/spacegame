@@ -5,7 +5,7 @@ mod camera;
 mod cursor;
 mod player;
 
-use self::camera::CameraPlugin;
+use camera::CameraPlugin;
 use cursor::CursorPlugin;
 use player::PlayerPlugin;
 
