@@ -1,16 +1,35 @@
-use bevy::{prelude::*, window::PrimaryWindow};
+use avian3d::prelude::*;
+use bevy::{math::VectorSpace, prelude::*, window::PrimaryWindow};
 use bevy_infinite_grid::{InfiniteGrid, InfiniteGridBundle, InfiniteGridPlugin};
 
 use super::camera::CameraMarker;
 
+pub struct PhysicsCursorPlugin;
 pub struct CursorPlugin;
+
+#[derive(Component)]
+struct GameCursor;
+
+impl Plugin for PhysicsCursorPlugin {
+    fn build(&self, app: &mut App) {
+        let physics_schedule = app
+            .get_schedule_mut(PhysicsSchedule)
+            .expect("add PhysicsSchedule first");
+
+        physics_schedule.add_systems(
+            update_world_cursor
+                .after(PhysicsStepSet::NarrowPhase)
+                .after(PhysicsStepSet::Solver),
+        );
+    }
+}
 
 impl Plugin for CursorPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<CursorPosition>();
         app.add_plugins(InfiniteGridPlugin);
         app.add_systems(Startup, setup);
-        app.add_systems(Update, update);
+        app.add_systems(Update, update_screen_cursor);
     }
 }
 
@@ -20,16 +39,39 @@ pub struct CursorPosition {
     pub local: Vec2,
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(InfiniteGridBundle::default());
+    commands.spawn((
+        ImageBundle {
+            image: asset_server.load("cursor.png").into(),
+            style: Style {
+                position_type: PositionType::Absolute,
+                ..default()
+            },
+            z_index: ZIndex::Global(15),
+            ..default()
+        },
+        GameCursor {},
+    ));
 }
 
-fn update(
+fn update_screen_cursor(
+    query_window: Query<&Window, With<PrimaryWindow>>,
+    mut query_cursor: Query<&mut Style, With<GameCursor>>,
+) {
+    let window: &Window = query_window.single();
+    if let Some(position) = window.cursor_position() {
+        let mut img_style = query_cursor.single_mut();
+        img_style.left = Val::Px(position.x - 16.0);
+        img_style.top = Val::Px(position.y - 16.0);
+    }
+}
+
+fn update_world_cursor(
     mut cursor_position_res: ResMut<CursorPosition>,
     query_window: Query<&Window, With<PrimaryWindow>>,
     query_camera: Query<(&Camera, &GlobalTransform), With<CameraMarker>>,
     query_plane: Query<&GlobalTransform, With<InfiniteGrid>>,
-    mut gizmos: Gizmos,
 ) {
     // Based on "Convert cursor to world coordinates" from Unofficial Bevy Cheat Book
     // https://bevy-cheatbook.github.io/cookbook/cursor2world.html
@@ -59,11 +101,4 @@ fn update(
     cursor_position_res.global = global_cursor;
     cursor_position_res.global.y = 0.0; // TODO Why is this necessary?
     cursor_position_res.local = local_cursor.xz();
-
-    gizmos.circle(
-        global_cursor + ground_transform.up() * 0.01,
-        ground_transform.up(),
-        0.2,
-        Color::WHITE,
-    );
 }
