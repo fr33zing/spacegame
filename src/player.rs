@@ -1,10 +1,13 @@
 use avian3d::prelude::*;
-use bevy::prelude::*;
+use bevy::{
+    color::palettes::css::{GREEN, RED, WHITE},
+    prelude::*,
+};
 
 use super::cursor::CursorPosition;
 
 const TURN_SPEED: f32 = 8.0;
-const THRUST: f32 = 14.;
+const THRUST: f32 = 256.0;
 
 pub struct PlayerPlugin;
 
@@ -12,6 +15,12 @@ impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup);
         app.add_systems(Update, (look_at_cursor, thrust).chain());
+        app.add_systems(
+            PostUpdate,
+            update_gizmos
+                .after(PhysicsSet::Sync)
+                .before(TransformSystem::TransformPropagate),
+        );
     }
 }
 
@@ -59,40 +68,59 @@ fn look_at_cursor(
 }
 
 // Constant rotation speed
-fn look_at_cursor_2(
-    time: Res<Time>,
-    cursor_position: ResMut<CursorPosition>,
-    mut query: Query<&mut Transform, With<PlayerMarker>>,
+// fn look_at_cursor_2(
+//     time: Res<Time>,
+//     cursor_position: ResMut<CursorPosition>,
+//     mut query: Query<&mut Transform, With<PlayerMarker>>,
+// ) {
+//     let mut transform = query.single_mut();
+
+//     let forward = (transform.rotation * Vec3::Z).xz();
+//     let to_cursor = (cursor_position.global.xz() - transform.translation.xz()).normalize();
+//     let forward_dot_cursor = forward.dot(to_cursor);
+
+//     if (forward_dot_cursor - 1.0).abs() < f32::EPSILON {
+//         return;
+//     }
+
+//     let right = (transform.rotation * Vec3::X).xz();
+//     let right_dot_cursor = right.dot(to_cursor);
+//     let rotation_sign = -f32::copysign(1.0, right_dot_cursor);
+//     let max_angle = forward_dot_cursor.clamp(-1.0, 1.0).acos();
+//     let rotation_angle = rotation_sign * (TURN_SPEED * time.delta_seconds()).min(max_angle);
+//     transform.rotate_y(rotation_angle);
+// }
+
+fn update_gizmos(
+    query_velocity_rotation: Query<
+        (&Transform, &LinearVelocity, &Rotation),
+        (With<RigidBody>, With<PlayerMarker>),
+    >,
+    mut gizmos: Gizmos,
 ) {
-    let mut transform = query.single_mut();
-
-    let forward = (transform.rotation * Vec3::Z).xz();
-    let to_cursor = (cursor_position.global.xz() - transform.translation.xz()).normalize();
-    let forward_dot_cursor = forward.dot(to_cursor);
-
-    if (forward_dot_cursor - 1.0).abs() < f32::EPSILON {
-        return;
+    for (transform, velocity, rotation) in query_velocity_rotation.iter() {
+        let start = transform.translation;
+        let direction = rotation * Vec3::Z;
+        let end_aim = start + direction * -4.0;
+        let end_velocity = start + **velocity / 2.0;
+        gizmos.arrow(start, end_aim, WHITE);
+        gizmos.arrow(start, end_velocity, GREEN);
     }
-
-    let right = (transform.rotation * Vec3::X).xz();
-    let right_dot_cursor = right.dot(to_cursor);
-    let rotation_sign = -f32::copysign(1.0, right_dot_cursor);
-    let max_angle = forward_dot_cursor.clamp(-1.0, 1.0).acos();
-    let rotation_angle = rotation_sign * (TURN_SPEED * time.delta_seconds()).min(max_angle);
-    transform.rotate_y(rotation_angle);
 }
 
-fn thrust(time: Res<Time>, mut query: Query<(&mut LinearVelocity, &Rotation), With<RigidBody>>) {
+fn thrust(
+    time: Res<Time<Physics>>,
+    keys: Res<ButtonInput<KeyCode>>,
+    mut query: Query<(&mut ExternalForce, &Rotation), (With<RigidBody>, With<PlayerMarker>)>,
+) {
     for (mut velocity, rotation) in query.iter_mut() {
-        let direction = rotation * Vec3::Z;
-        let thrust = direction * -THRUST * time.delta_seconds();
-        let damping = 1.0 - 0.99999999 * time.delta_seconds(); // TODO Clean this
+        velocity.clear();
 
-        velocity.x *= damping;
-        velocity.z *= damping;
+        if keys.pressed(KeyCode::KeyW) {
+            let direction = rotation * Vec3::Z;
+            let thrust = direction * -THRUST * time.delta_seconds();
 
-        velocity.x += thrust.x;
-        velocity.z += thrust.z;
-        break;
+            velocity.apply_force(thrust);
+        }
     }
 }

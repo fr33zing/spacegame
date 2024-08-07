@@ -1,35 +1,20 @@
 use avian3d::prelude::*;
-use bevy::{math::VectorSpace, prelude::*, window::PrimaryWindow};
+use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_infinite_grid::{InfiniteGrid, InfiniteGridBundle, InfiniteGridPlugin};
 
 use super::camera::CameraMarker;
 
-pub struct PhysicsCursorPlugin;
 pub struct CursorPlugin;
 
 #[derive(Component)]
 struct GameCursor;
-
-impl Plugin for PhysicsCursorPlugin {
-    fn build(&self, app: &mut App) {
-        let physics_schedule = app
-            .get_schedule_mut(PhysicsSchedule)
-            .expect("add PhysicsSchedule first");
-
-        physics_schedule.add_systems(
-            update_world_cursor
-                .after(PhysicsStepSet::NarrowPhase)
-                .after(PhysicsStepSet::Solver),
-        );
-    }
-}
 
 impl Plugin for CursorPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<CursorPosition>();
         app.add_plugins(InfiniteGridPlugin);
         app.add_systems(Startup, setup);
-        app.add_systems(Update, update_screen_cursor);
+        app.add_systems(Update, (update_world_cursor, update_screen_cursor));
     }
 }
 

@@ -1,10 +1,10 @@
 use avian3d::prelude::*;
 use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 
-use super::cursor::CursorPosition;
 use super::player::PlayerMarker;
 
-const CURSOR_TRACK_FACTOR: f32 = 0.15;
+const CURSOR_TRACK_MAX_DISTANCE: f32 = 12.0;
 
 pub struct CameraPlugin;
 
@@ -40,16 +40,33 @@ fn setup(mut commands: Commands) {
 }
 
 fn update(
-    cursor_position: ResMut<CursorPosition>,
-    query_player_transform: Query<&Transform, (With<PlayerMarker>, Without<CameraMarker>)>,
+    query_window: Query<&Window, With<PrimaryWindow>>,
+    query_player_transform: Query<
+        &Transform,
+        (With<RigidBody>, With<PlayerMarker>, Without<CameraMarker>),
+    >,
     mut query_camera_transform: Query<&mut Transform, With<CameraMarker>>,
 ) {
+    let cursor_offset = 'co: {
+        let window = query_window.single();
+        let Some(cursor_position) = window.cursor_position() else {
+            break 'co Vec2::ZERO;
+        };
+        let window_size = window.size();
+        let cursor_offset =
+            (cursor_position / window.size() - Vec2::new(0.5, 0.5)) * CURSOR_TRACK_MAX_DISTANCE;
+        let aspect_ratio_adjustment = if window_size.x > window_size.y {
+            Vec2::new(window_size.y / window_size.x, 1.0)
+        } else {
+            Vec2::new(1.0, window_size.x / window_size.y)
+        };
+
+        Vec2::new(cursor_offset.y, -cursor_offset.x) * aspect_ratio_adjustment
+    };
+
     let player_transform = query_player_transform.single();
     let mut camera_transform = query_camera_transform.single_mut();
-    let target = player_transform
-        .translation
-        .xz()
-        .lerp(cursor_position.global.xz(), CURSOR_TRACK_FACTOR);
+    let target = player_transform.translation.xz() + cursor_offset;
     camera_transform.translation.x = target.x;
     camera_transform.translation.z = target.y;
 }

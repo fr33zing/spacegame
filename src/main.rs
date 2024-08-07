@@ -1,7 +1,7 @@
 use avian3d::prelude::*;
 use bevy::{
     prelude::*,
-    window::{Cursor, PresentMode},
+    window::{Cursor, PresentMode, WindowMode},
 };
 
 mod camera;
@@ -9,7 +9,7 @@ mod cursor;
 mod player;
 
 use camera::CameraPlugin;
-use cursor::{CursorPlugin, PhysicsCursorPlugin};
+use cursor::CursorPlugin;
 use player::PlayerPlugin;
 
 fn main() {
@@ -18,6 +18,7 @@ fn main() {
         DefaultPlugins // TODO Clean this
             .set(WindowPlugin {
                 primary_window: Some(Window {
+                    mode: WindowMode::BorderlessFullscreen,
                     present_mode: PresentMode::AutoNoVsync,
                     cursor: Cursor {
                         visible: false,
@@ -27,12 +28,11 @@ fn main() {
                 }),
                 ..default()
             }),
-        PhysicsPlugins::default().build().add(PhysicsCursorPlugin),
+        PhysicsPlugins::default().build(),
         PhysicsDebugPlugin::default(),
         CursorPlugin,
         CameraPlugin,
         PlayerPlugin,
     ));
-    //app.insert_resource(Time::new_with(Physics::variable(1.0 / 600.0)));
     app.run();
 }
