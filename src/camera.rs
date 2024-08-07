@@ -4,7 +4,7 @@ use bevy::window::PrimaryWindow;
 
 use super::player::PlayerMarker;
 
-const CURSOR_TRACK_MAX_DISTANCE: f32 = 12.0;
+const CURSOR_TRACK_MAX_DISTANCE: f32 = 4.0;
 
 pub struct CameraPlugin;
 
@@ -26,7 +26,7 @@ pub struct CameraMarker;
 fn setup(mut commands: Commands) {
     commands.spawn((
         Camera3dBundle {
-            transform: Transform::from_xyz(0., 16., 0.).looking_at(Vec3::new(0., 0., 0.), Vec3::Y),
+            transform: Transform::from_xyz(0., 16., 0.).looking_at(Vec3::new(0., 0., 0.), -Vec3::Z),
             ..default()
         },
         CameraMarker,
@@ -56,12 +56,12 @@ fn update(
         let cursor_offset =
             (cursor_position / window.size() - Vec2::new(0.5, 0.5)) * CURSOR_TRACK_MAX_DISTANCE;
         let aspect_ratio_adjustment = if window_size.x > window_size.y {
-            Vec2::new(window_size.y / window_size.x, 1.0)
+            Vec2::new(window_size.x / window_size.y, 1.0)
         } else {
-            Vec2::new(1.0, window_size.x / window_size.y)
+            Vec2::new(1.0, window_size.y / window_size.x)
         };
 
-        Vec2::new(cursor_offset.y, -cursor_offset.x) * aspect_ratio_adjustment
+        cursor_offset * aspect_ratio_adjustment
     };
 
     let player_transform = query_player_transform.single();
