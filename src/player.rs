@@ -58,9 +58,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 fn look_at_cursor(
     time: Res<Time>,
     cursor_position: ResMut<CursorPosition>,
-    mut query_rotation: Query<&mut Transform, With<PlayerMarker>>,
+    mut query: Query<&mut Transform, With<PlayerMarker>>,
 ) {
-    let mut transform = query_rotation.single_mut();
+    let mut transform = query.single_mut();
     let look_at_sphere = transform.looking_at(cursor_position.global, *transform.local_y());
     let incremental_turn_weight = TURN_SPEED * time.delta_seconds();
     let old_rotation = transform.rotation;
@@ -92,13 +92,10 @@ fn look_at_cursor(
 // }
 
 fn update_gizmos(
-    query_velocity_rotation: Query<
-        (&Transform, &LinearVelocity, &Rotation),
-        (With<RigidBody>, With<PlayerMarker>),
-    >,
+    query: Query<(&Transform, &LinearVelocity, &Rotation), (With<RigidBody>, With<PlayerMarker>)>,
     mut gizmos: Gizmos,
 ) {
-    for (transform, velocity, rotation) in query_velocity_rotation.iter() {
+    for (transform, velocity, rotation) in query.iter() {
         let start = transform.translation;
         let direction = rotation * Vec3::Z;
         let end_aim = start + direction * -4.0;
