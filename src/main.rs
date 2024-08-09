@@ -7,6 +7,7 @@ use bevy::{
 mod camera;
 mod cursor;
 mod player;
+mod weapon;
 
 use camera::CameraPlugin;
 use cursor::CursorPlugin;

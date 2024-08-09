@@ -1,6 +1,6 @@
 use avian3d::prelude::*;
 use bevy::{
-    color::palettes::css::{GREEN, RED, WHITE},
+    color::palettes::css::{GREEN, WHITE},
     prelude::*,
 };
 
@@ -82,7 +82,6 @@ fn look_at_cursor(
 //     if (forward_dot_cursor - 1.0).abs() < f32::EPSILON {
 //         return;
 //     }
-
 //     let right = (transform.rotation * Vec3::X).xz();
 //     let right_dot_cursor = right.dot(to_cursor);
 //     let rotation_sign = -f32::copysign(1.0, right_dot_cursor);
@@ -120,4 +119,18 @@ fn thrust(
             velocity.apply_force(thrust);
         }
     }
+}
+
+fn fire_weapons(
+    time: Res<Time>,
+    commands: Commands,
+    assets: Res<AssetServer>,
+    mouse: Res<ButtonInput<MouseButton>>,
+    query: Query<&Transform, With<PlayerMarker>>,
+) {
+    if !mouse.pressed(MouseButton::Left) {
+        return;
+    }
+
+    let transform = query.single();
 }
