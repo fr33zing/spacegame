@@ -12,6 +12,7 @@ mod weapon;
 use camera::CameraPlugin;
 use cursor::CursorPlugin;
 use player::PlayerPlugin;
+use weapon::WeaponPlugin;
 
 fn main() {
     let mut app = App::new();
@@ -34,6 +35,7 @@ fn main() {
         CursorPlugin,
         CameraPlugin,
         PlayerPlugin,
+        WeaponPlugin,
     ));
     app.run();
 }

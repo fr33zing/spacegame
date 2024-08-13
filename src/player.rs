@@ -5,6 +5,7 @@ use bevy::{
 };
 
 use super::cursor::CursorPosition;
+use super::weapon::Weapon;
 
 const TURN_SPEED: f32 = 8.0;
 const THRUST: f32 = 256.0;
@@ -14,7 +15,7 @@ pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup);
-        app.add_systems(Update, (look_at_cursor, thrust).chain());
+        app.add_systems(Update, (look_at_cursor, thrust, fire_weapons).chain());
         app.add_systems(
             PostUpdate,
             update_gizmos
@@ -33,6 +34,7 @@ struct PlayerBundle {
     collider: Collider,
     locked_axes: LockedAxes,
     scene: SceneBundle,
+    weapon: Weapon,
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -49,6 +51,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 scene: asset_server.load("debug_ship.glb#Scene0"),
                 ..default()
             },
+            weapon: Weapon::with_rounds_per_minute(3000.0),
         },
         PlayerMarker,
     ));
@@ -122,15 +125,14 @@ fn thrust(
 }
 
 fn fire_weapons(
-    time: Res<Time>,
-    commands: Commands,
-    assets: Res<AssetServer>,
     mouse: Res<ButtonInput<MouseButton>>,
-    query: Query<&Transform, With<PlayerMarker>>,
+    mut query: Query<&mut Weapon, With<PlayerMarker>>,
 ) {
-    if !mouse.pressed(MouseButton::Left) {
-        return;
-    }
+    let mut weapon = query.single_mut();
 
-    let transform = query.single();
+    if mouse.pressed(MouseButton::Left) {
+        weapon.start_firing();
+    } else {
+        weapon.stop_firing();
+    }
 }
