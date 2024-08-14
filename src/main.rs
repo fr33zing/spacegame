@@ -37,5 +37,6 @@ fn main() {
         PlayerPlugin,
         WeaponPlugin,
     ));
+    app.insert_resource(Gravity::ZERO);
     app.run();
 }

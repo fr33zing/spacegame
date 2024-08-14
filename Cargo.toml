@@ -9,6 +9,7 @@ edition = "2021"
 avian3d = "0.1.1"
 bevy = { version = "0.14.1" }
 bevy_infinite_grid = { git = "https://github.com/ForesightMiningSoftwareCorporation/bevy_infinite_grid", branch = "main" }
+rand = "0.8.5"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]

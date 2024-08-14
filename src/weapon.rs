@@ -2,6 +2,7 @@ use std::time::{Duration, Instant};
 
 use avian3d::prelude::*;
 use bevy::prelude::*;
+use rand::Rng;
 
 //
 // Plugin
@@ -26,6 +27,7 @@ pub struct Weapon {
     last_fired: Instant,
     cooldown: Duration,
     muzzle_velocity: f32,
+    spread_degrees: f32,
 }
 
 impl Weapon {
@@ -36,6 +38,7 @@ impl Weapon {
             firing: false,
             cooldown,
             muzzle_velocity: 20.0,
+            spread_degrees: 2.0,
         }
     }
 
@@ -84,21 +87,33 @@ fn fire(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
 ) {
+    let mut rng = rand::thread_rng();
+
     for (owner, owner_transform, owner_velocity, owner_mass, mut weapon) in &mut query {
+        // Decide how many times to fire
         if !weapon.firing {
             continue;
         }
-
         let since_last_fire = Instant::now() - weapon.last_fired;
         let fire_times =
             (since_last_fire.as_secs_f64() / weapon.cooldown.as_secs_f64()).floor() as u32;
-
         if fire_times > 0 {
             weapon.last_fired = Instant::now();
+        } else {
+            continue;
         }
 
+        // Calculate fire direction
         let fire_direction = owner_transform.rotation * -Vec3::Z;
+        let spread_y = rng
+            .gen_range(-weapon.spread_degrees..weapon.spread_degrees)
+            .to_radians();
+        let spread_y = Quat::from_rotation_y(spread_y);
+        let spread_axis_angle = rng.gen_range(0.0..360.0f32).to_radians();
+        let spread_axis_angle = Quat::from_axis_angle(fire_direction, spread_axis_angle);
+        let fire_direction = spread_axis_angle * (spread_y * fire_direction);
 
+        // Fire bullets
         for _ in 0..fire_times {
             let mass: f32 = 0.1;
             let muzzle_velocity = fire_direction * (weapon.muzzle_velocity / mass);
@@ -110,7 +125,6 @@ fn fire(
                     mass: Mass(mass),
                     collider: Collider::sphere(0.1),
                     locked_axes: LockedAxes::new()
-                        .lock_translation_y()
                         .lock_rotation_x()
                         .lock_rotation_y()
                         .lock_rotation_z(),
