@@ -49,6 +49,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .lock_rotation_z(),
             scene: SceneBundle {
                 scene: asset_server.load("debug_ship.glb#Scene0"),
+                transform: Transform::from_xyz(10.0, 0.0, 0.0),
                 ..default()
             },
             weapon: Weapon::with_rounds_per_minute(3000.0),
