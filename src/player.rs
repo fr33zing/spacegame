@@ -8,14 +8,25 @@ use super::cursor::CursorPosition;
 use super::weapon::Weapon;
 
 const TURN_SPEED: f32 = 8.0;
-const THRUST: f32 = 256.0;
+const THRUST: f32 = 500.0;
+const INERTIAL_DAMPENING: f32 = 150.0;
 
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup);
-        app.add_systems(Update, (look_at_cursor, thrust, fire_weapons).chain());
+        app.add_systems(
+            Update,
+            (
+                look_at_cursor,
+                reset_external_force,
+                dampen_inertia,
+                thrust,
+                fire_weapons,
+            )
+                .chain(),
+        );
         app.add_systems(
             PostUpdate,
             update_gizmos
@@ -108,19 +119,35 @@ fn update_gizmos(
     }
 }
 
+fn reset_external_force(
+    mut query: Query<&mut ExternalForce, (With<RigidBody>, With<PlayerMarker>)>,
+) {
+    for mut force in query.iter_mut() {
+        force.clear();
+    }
+}
+
+fn dampen_inertia(
+    time: Res<Time<Physics>>,
+    mut query: Query<(&mut ExternalForce, &LinearVelocity), (With<RigidBody>, With<PlayerMarker>)>,
+) {
+    for (mut force, velocity) in query.iter_mut() {
+        let dampening = (-**velocity).clamp_length(0.0, time.delta_seconds()) * INERTIAL_DAMPENING;
+        force.apply_force(dampening);
+    }
+}
+
 fn thrust(
     time: Res<Time<Physics>>,
     keys: Res<ButtonInput<KeyCode>>,
     mut query: Query<(&mut ExternalForce, &Rotation), (With<RigidBody>, With<PlayerMarker>)>,
 ) {
-    for (mut velocity, rotation) in query.iter_mut() {
-        velocity.clear();
-
-        if keys.pressed(KeyCode::KeyW) {
+    if keys.pressed(KeyCode::KeyW) {
+        for (mut force, rotation) in query.iter_mut() {
             let direction = rotation * Vec3::Z;
             let thrust = direction * -THRUST * time.delta_seconds();
 
-            velocity.apply_force(thrust);
+            force.apply_force(thrust);
         }
     }
 }
